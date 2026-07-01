@@ -38,20 +38,19 @@ pipeline {
         }
 
         stage('Push Docker Image to ECR') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'aws-creds',
-                    usernameVariable: 'AWS_ACCESS_KEY_ID',
-                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                )]) {
-                    sh '''
-                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                    docker tag ${IMAGE_NAME}:latest ${ECR_REGISTRY}/${IMAGE_NAME}:latest
-                    docker push ${ECR_REGISTRY}/${IMAGE_NAME}:latest
-                    '''
-                }
-            }
+    steps {
+        withCredentials([[
+            $class: 'AmazonWebServicesCredentialsBinding',
+            credentialsId: 'aws-creds'
+        ]]) {
+            sh '''
+            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+            docker tag ${IMAGE_NAME}:latest ${ECR_REGISTRY}/${IMAGE_NAME}:latest
+            docker push ${ECR_REGISTRY}/${IMAGE_NAME}:latest
+            '''
         }
+    }
+}
 
         stage('Terraform Apply') {
             steps {
@@ -60,22 +59,20 @@ pipeline {
         }
 
         stage('Deploy to EKS') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'aws-creds',
-                    usernameVariable: 'AWS_ACCESS_KEY_ID',
-                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                )]) {
-                    sh '''
-                    aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
-                    kubectl apply -f kubernetes/
-                    kubectl get pods
-                    kubectl get svc
-                    '''
-                }
-            }
+    steps {
+        withCredentials([[
+            $class: 'AmazonWebServicesCredentialsBinding',
+            credentialsId: 'aws-creds'
+        ]]) {
+            sh '''
+            aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}
+            kubectl apply -f kubernetes/
+            kubectl get pods
+            kubectl get svc
+            '''
         }
     }
+}
 
     post {
         success {
