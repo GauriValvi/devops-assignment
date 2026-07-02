@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    logging.info("Home endpoint called, great!!!")
+    logging.info("Home endpoint called, hello")
     return "Hello from Flask app"
 
 if __name__ == "__main__":
